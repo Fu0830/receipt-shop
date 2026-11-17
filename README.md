@@ -51,7 +51,14 @@ https://<你的用户名>.github.io/receipt-shop/
 
 ## 另外六个 IP 主题
 
-除三丽鸥六位，还接入了六个独立 IP：开开、小尾、噜噜、棉球猫、吉伊卡哇、月薪喵。这六个的原始素材是带底色的整幅插画，所以票面里以「白边插画卡」的形式呈现（照片式），和三丽鸥的透明贴纸并列可选。
+除三丽鸥六位，还接入了六个独立 IP：开开、小尾、噜噜、棉球猫、吉伊卡哇、月薪喵。这六个的原始素材是带底色的整幅插画，先用肉眼可见的底色裁切，再经 `mediakit-cli image remove-image-background` 抠成透明贴纸，和三丽鸥一致地贴在格纹底上。
 
 - 素材：`assets/ip_kaikai.png`、`ip_xiaowei.png`、`ip_lulu.png`、`ip_mianqiu.png`、`ip_chii.png`、`ip_yuexin.png`（由 `assets/ip_*_src.png` 原图裁切），同目录另有同名 `webp`。
-- 内联方式：`index.html` 的 `var CHARS` 里每项 `{ name, hue, ph: 1, img }`，`ph: 1` 表示用插画卡版式；三丽鸥那六项没有 `ph`，走透明贴纸版式。
+- 内联方式：`var CHARS` 里每项 `{ name, hue, h, img }`，`h` 是票面内的显示高度，`img` 为内联 webp。
+- 吉伊卡哇原图是整版贴纸，抠完按连通域面积过滤掉零碎小贴纸，只留雪人三人组。
+
+## 出票与导出
+
+- 点「打印小票」：先跑 `feed` 打印动画（1.6s），随后加 `is-torn` 进入撕纸阶段——小票抬升、轻微倾斜，槽口留一截纸头，`tearOff` 关键帧 0.95s。
+- 三档导出：`存图片`（html2canvas → PNG）、`存视频`（画布重放打印+撕纸，`captureStream` + `MediaRecorder` → WebM）、`存动图`（同一条画布动画，内联 gifenc 编码 → 循环 GIF）。
+- 店名（中/英）与印章文案固定为 `星野游戏屋 / HOSHINO PLAYROOM / 荷包蛋`，表单里改成只读展示块，只剩印章开关可动。
