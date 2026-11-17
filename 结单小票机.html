@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>小票机 · 结单小票生成器</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f7b8cd'/%3E%3Cpath d='M9 6h14v20l-2.4-1.8-2.4 1.8-2.4-1.8-2.4 1.8-2.4-1.8L9 26z' fill='%23fffdfb'/%3E%3Cpath d='M12 11h8M12 15h8M12 19h5' stroke='%23c98aa8' stroke-width='1.4'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f7b8cd">
 <link rel="preconnect" href="https://miaoda.feishu.cn">
 <link rel="preconnect" href="https://sf3-scmcdn-cn.feishucdn.com" crossorigin>
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Parisienne&amp;family=Noto+Serif+SC:wght@400;600&amp;display=swap">
@@ -485,6 +488,12 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
   box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .4);
 }
 .tk-name{ min-width: 0; flex: 1 1 auto; }
+.tk-logo-img{ padding: 0; overflow: hidden; }
+.tk-logo-img img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-row{ display: flex; align-items: center; gap: 9px; margin-top: 10px; flex-wrap: wrap; }
+.avatar-row .btn{ height: 38px; padding: 0 14px; font-size: 12.5px; }
+.avatar-preview{ width: 46px; height: 46px; flex: none; border-radius: 12px; overflow: hidden; background: var(--ui-field); border: 1px solid var(--ui-line); display: flex; align-items: center; justify-content: center; }
+.avatar-preview img{ width: 100%; height: 100%; object-fit: cover; }
 .tk-name h3{ font-size: 16px; font-weight: 600; letter-spacing: .07em; color: var(--tk-ink); line-height: 1.3; }
 .tk-name p{
   margin-top: 2px; font-family: var(--tk-mono); font-size: 8px; letter-spacing: .24em;
@@ -787,6 +796,12 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
           <span class="lock-tag">固定</span>
           <b id="clubCnView">OK绷俱乐部</b>
           <i id="clubEnView">OKB CLUB</i>
+        </div>
+        <div class="avatar-row">
+          <div class="avatar-preview" id="logoPreview" hidden><img id="logoPreviewImg" alt="徽章头像"></div>
+          <button type="button" class="btn btn-ghost" id="logoUploadBtn">上传徽章头像</button>
+          <button type="button" class="btn btn-ghost" id="logoClearBtn" hidden>恢复默认徽章</button>
+          <input type="file" id="logoFile" accept="image/*" hidden>
         </div>
         <div class="row2">
           <div class="field">
@@ -1105,7 +1120,9 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       '<div class="tk-in">' +
         '<div class="tk-meta"><span>SETTLEMENT · 结单凭证</span><span>NO. ' + esc(state.no) + '</span></div>' +
         '<div class="tk-brand">' +
-          '<div class="tk-logo">' + esc(mark) + '</div>' +
+          (state.logoImg
+            ? '<div class="tk-logo tk-logo-img"><img src="' + state.logoImg + '" alt="徽章头像"></div>'
+            : '<div class="tk-logo">' + esc(mark) + '</div>') +
           '<div class="tk-name">' +
             '<h3>' + esc(state.clubCn || '小店') + '</h3>' +
             '<p>' + esc(state.clubEn || '') + '</p>' +
@@ -1233,6 +1250,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       m.items = DEFAULTS.items.map(function (x) { return Object.assign({}, x); });
     } else {
       m.items.forEach(function (it) { if (it.note === undefined) it.note = ''; });
+    if (m.logoImg === undefined) m.logoImg = '';
     }
     return m;
   }
@@ -1548,7 +1566,51 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
   }
 
   /* ---------- 绑定 ---------- */
+  /* ---------- 徽章头像 ---------- */
+  function refreshLogoUI() {
+    var has = !!state.logoImg;
+    $("#logoPreview").hidden = !has;
+    $("#logoClearBtn").hidden = !has;
+    if (has) $("#logoPreviewImg").src = state.logoImg;
+  }
+  /* ---------- 绑定 ---------- */
   function bind() {
+    /* ---------- 徽章头像 ---------- */
+    function compressLogo(file, done) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var max = 160;
+        var w = img.width, h = img.height;
+        if (w > max || h > max) {
+          var k = Math.min(max / w, max / h);
+          w = Math.round(w * k); h = Math.round(h * k);
+        }
+        var cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        done(cv.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); toast('图片读取失败，请换一张'); };
+      img.src = url;
+    }
+    $('#logoUploadBtn').addEventListener('click', function () { $('#logoFile').click(); });
+    $('#logoFile').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      compressLogo(f, function (dataUrl) {
+        state.logoImg = dataUrl;
+        refreshLogoUI(); renderSlip(); save();
+        toast('徽章头像已更新');
+      });
+      e.target.value = '';
+    });
+    $('#logoClearBtn').addEventListener('click', function () {
+      state.logoImg = '';
+      refreshLogoUI(); renderSlip(); save();
+      toast('已恢复默认徽章');
+    });
     $('#items').addEventListener('input', function (e) {
       var card = e.target.closest('.item-card');
       var k = e.target.dataset.k;
@@ -1660,6 +1722,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     stampOn: true,
     stampText: '荷包蛋',
     character: 'kitty',
+    logoImg: '',
     hue: 352,
     night: false
   };
@@ -1673,6 +1736,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
   renderItems();
   renderSlip();
   bind();
+  refreshLogoUI();
 })();
 </script>
 </body>
