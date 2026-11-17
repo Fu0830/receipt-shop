@@ -496,7 +496,7 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
 .tk-hero{
   margin: 8px 0 4px; padding: 13px 12px 11px; border-radius: 14px;
   text-align: center;
-  background-color: hsl(var(--hue) 72% 97%);
+  background-color: hsl(var(--hue) 62% 89%);
   background-size: 22px 22px;
   background-repeat: repeat;
   border: 1px solid hsl(var(--hue) 58% 86%);
@@ -700,6 +700,7 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
   margin: 10px 2px 12px; font-size: 12px; line-height: 1.6; color: #6b6b73;
 }
 .save-acts{ display: flex; gap: 8px; }
+.save-acts .btn[hidden]{ display: none !important; }
 .save-acts .btn{ flex: 1; }
 
 [data-night="on"] .actionbar{
@@ -919,6 +920,7 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
     <p class="save-tip" id="saveTip"></p>
     <div class="save-acts">
       <button class="btn btn-primary save-share" id="saveShare" type="button" hidden>保存到相册</button>
+      <button class="btn btn-ghost" id="saveOpen" type="button" hidden>新窗口打开</button>
       <button class="btn btn-ghost" id="saveDownload" type="button">下载文件</button>
     </div>
   </div>
@@ -1051,20 +1053,19 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
   }
 
   var ginghamCache = {};
-  function gingham(h) {
-    if (ginghamCache[h]) return ginghamCache[h];
+  /* 格纹只画半透明条纹，颜色由 .tk-hero 的 background-color 跟随主题色 */
+  var ginghamTile = null;
+  function gingham() {
+    if (ginghamTile) return ginghamTile;
     var c = document.createElement('canvas');
     c.width = 22; c.height = 22;
     var x = c.getContext('2d');
-    x.fillStyle = 'hsl(' + h + ', 72%, 97%)';
-    x.fillRect(0, 0, 22, 22);
-    x.fillStyle = 'hsla(' + h + ', 62%, 87%, .5)';
+    x.fillStyle = 'rgba(255,255,255,.62)';
     x.fillRect(0, 0, 22, 9);
-    x.fillStyle = 'hsla(' + h + ', 62%, 87%, .42)';
+    x.fillStyle = 'rgba(255,255,255,.5)';
     x.fillRect(0, 0, 9, 22);
-    var url = c.toDataURL('image/png');
-    ginghamCache[h] = url;
-    return url;
+    ginghamTile = c.toDataURL('image/png');
+    return ginghamTile;
   }
 
   /* ---------- 渲染小票 ---------- */
@@ -1112,7 +1113,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
             '<em>' + esc(slogan()) + '</em>' +
           '</div>' +
         '</div>' +
-        '<div class="tk-hero" style="background-image:url(' + gingham(state.hue) + ')"><img src="' + ch.img + '" style="height:' + ch.h + 'px" alt="' + esc(ch.name) + '"><p>' + esc(ch.name) + ' · CHARACTER</p></div>' +
+        '<div class="tk-hero" style="background-image:url(' + gingham() + ')"><img src="' + ch.img + '" style="height:' + ch.h + 'px" alt="' + esc(ch.name) + '"><p>' + esc(ch.name) + ' · CHARACTER</p></div>' +
         '<div class="tk-time">' +
           '<span>' + tk.day + '</span><i></i>' +
           '<span>' + tk.min + '</span><i></i>' +
@@ -1318,6 +1319,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     $('#saveSheet').hidden = true;
     $('#saveStage').innerHTML = '';
     $('#saveShare').hidden = true;
+    $('#saveOpen').hidden = true;
     if (saveObj) { URL.revokeObjectURL(saveObj.url); saveObj = null; }
   }
 
@@ -1342,10 +1344,11 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     try { file = new File([blob], name, { type: blob.type || 'application/octet-stream' }); } catch (e) { file = null; }
     var canShare = !!(navigator.canShare && file && navigator.canShare({ files: [file] }));
     $('#saveShare').hidden = !canShare;
+    $('#saveOpen').hidden = kind !== 'video';
     $('#saveTip').textContent = kind === 'video'
       ? (canShare
-          ? '点「保存到相册」会调起系统面板，选「存储视频」即可；微信里也可长按视频另存。'
-          : '长按上方视频，选「存储视频」；或点「下载文件」存到手机文件里。')
+          ? 'MP4 格式（H.264），点「保存到相册」调起系统面板选「存储视频」即可。'
+          : 'MP4 格式（H.264，相册可直接读）。点「新窗口打开」用系统分享存进相册，或「下载文件」。')
       : (canShare
           ? '长按上方图片，选「存储图像／保存图片」就能进相册；也可以点「保存到相册」。'
           : '长按上方图片，选「存储图像／保存图片」即可存进相册；电脑上点「下载文件」。');
@@ -1354,6 +1357,10 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     $('#saveShare').onclick = function () {
       if (!canShare || !file) return;
       navigator.share({ files: [file], title: '结单小票 · ' + (state.no || '') }).catch(function () {});
+    };
+    $('#saveOpen').onclick = function () {
+      if (!saveObj) return;
+      window.open(saveObj.url, '_blank');
     };
     $('#saveDownload').onclick = function () {
       if (!saveObj) return;
@@ -1460,7 +1467,15 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     toast('正在录视频，约 3 秒…');
     slipCanvas(2).then(function (base) {
       var st = makeStage(base);
-      var mimes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+      /* 优先 MP4(H.264)，相册、微信、剪辑软件都能直接读；WebM 只作兜底 */
+      var mimes = [
+        'video/mp4;codecs=avc1.42E01E',
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
       var mime = mimes.filter(function (m) { return MediaRecorder.isTypeSupported(m); })[0];
       if (!mime) { toast('这台浏览器不支持录视频'); exporting = false; return; }
       var stream = st.canvas.captureStream(30);
@@ -1468,8 +1483,9 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       var chunks = [];
       rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
       rec.onstop = function () {
-        showSave(new Blob(chunks, { type: mime }), '小票-' + (state.no || 'receipt') + (mime.indexOf('mp4') > -1 ? '.mp4' : '.webm'), 'video');
-        toast('视频好了，点保存到相册');
+        var mp4 = mime.indexOf('mp4') > -1;
+        showSave(new Blob(chunks, { type: mime }), '小票-' + (state.no || 'receipt') + (mp4 ? '.mp4' : '.webm'), 'video');
+        toast(mp4 ? '视频好了，点保存到相册' : '视频好了，长按存进相册');
         st.canvas.width = st.canvas.height = 0;
         exporting = false;
       };
@@ -1492,7 +1508,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     if (!window.GIFEnc) { toast('动图组件未就绪'); return; }
     exporting = true;
     toast('正在生成动图…');
-    slipCanvas(1).then(function (base) {
+    /* 必须用 2 倍图：html2canvas 在 1 倍像素比下会把纸底渲染成灰色 */
+    slipCanvas(2).then(function (base) {
       var st = makeStage(base);
       var W = st.canvas.width, H = st.canvas.height;
       var k = Math.min(1, 300 / W);
@@ -1503,23 +1520,22 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       var fps = 12, delay = Math.round(1000 / fps);
       var frames = Math.round(st.total / 1000 * fps);
       var enc = window.GIFEnc.GIFEncoder();
-      /* 取中段一帧做全局调色板，避免开头空白帧把颜色带偏 */
-      st.draw(st.total * 0.62);
+      /* 取「纸面刚完全出来、还没开始撕」的一帧做调色板：没有阴影灰、白底最干净 */
+      st.draw(1660);
       tctx.clearRect(0, 0, cw, ch);
       tctx.drawImage(st.canvas, 0, 0, cw, ch);
-      var pal = window.GIFEnc.quantize(tctx.getImageData(0, 0, cw, ch).data, 128);
-      if (pal.length > 256) pal = pal.slice(0, 256);
-      pal = pal.slice(0, 128);
+      var pal = window.GIFEnc.quantize(tctx.getImageData(0, 0, cw, ch).data, 256);
       for (var i = 0; i < frames; i++) {
         st.draw(i / fps * 1000);
         tctx.clearRect(0, 0, cw, ch);
         tctx.drawImage(st.canvas, 0, 0, cw, ch);
         var data = tctx.getImageData(0, 0, cw, ch).data;
-        var idx = window.GIFEnc.applyPalette(data, pal, 'rgb565');
+        var idx = window.GIFEnc.applyPalette(data, pal);
         enc.writeFrame(idx, cw, ch, {
-          palette: i === 0 ? pal : undefined,
+          palette: pal,
           delay: delay,
-          repeat: i === 0 ? 0 : undefined,
+          repeat: i === 0 ? 0 : -1,
+          transparent: false,
           dispose: 1
         });
       }
