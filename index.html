@@ -746,8 +746,8 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
       <div class="panel-body">
         <div class="lock-row">
           <span class="lock-tag">固定</span>
-          <b id="clubCnView">星野游戏屋</b>
-          <i id="clubEnView">HOSHINO PLAYROOM</i>
+          <b id="clubCnView">OK绷俱乐部</b>
+          <i id="clubEnView">OKB CLUB</i>
         </div>
         <div class="row2">
           <div class="field">
@@ -978,7 +978,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     if (state.tail.trim()) return state.tail.trim();
     var n = state.name.trim() || '你';
     var c = state.clubCn.trim() || '这里';
-    return '祝' + n + '在' + c + '玩得开心玩得愉快';
+    return '祝' + n + '在' + c + '玩得开心';
   }
 
   /* ---------- 条码 ---------- */
@@ -1043,7 +1043,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     var tk = formatTicket(state.when);
     var cn = String(state.clubCn || '').replace(/[^\u4e00-\u9fa5]/g, '');
     var en = String(state.clubEn || '').replace(/[^A-Za-z0-9]/g, '');
-    var mark = cn.length >= 2 ? cn.slice(0, 2) : (en ? en.slice(0, 3).toUpperCase() : 'RP');
+    var head = String(state.clubCn || '').trim();
+    var mark = head.length >= 2 ? head.slice(0, 2).toUpperCase() : (en ? en.slice(0, 3).toUpperCase() : 'RP');
     var count = state.items.length;
     var ch = CHARS[state.character] || CHARS.kitty;
 
@@ -1173,6 +1174,9 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
     var m = {};
     Object.keys(DEFAULTS).forEach(function (k) { m[k] = saved[k] !== undefined ? saved[k] : DEFAULTS[k]; });
+    /* 店名已固定，把旧存档里的旧店名迁到新店名 */
+    if (m.clubCn === '星野游戏屋') m.clubCn = DEFAULTS.clubCn;
+    if (m.clubEn === 'HOSHINO PLAYROOM') m.clubEn = DEFAULTS.clubEn;
     if (!Array.isArray(m.items) || !m.items.length) {
       m.items = DEFAULTS.items.map(function (x) { return Object.assign({}, x); });
     }
@@ -1532,8 +1536,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
   ];
 
   var DEFAULTS = {
-    clubEn: 'HOSHINO PLAYROOM',
-    clubCn: '星野游戏屋',
+    clubEn: 'OKB CLUB',
+    clubCn: 'OK绷俱乐部',
     when: toLocalInput(new Date()),
     cur: '¥',
     no: 'HP-206031',
