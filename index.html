@@ -861,9 +861,8 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
           <input id="tail" class="control" autocomplete="off" placeholder="祝{名字}在店里玩得愉快">
         </div>
         <div class="field">
-          <label>盖章<span class="hint">固定为「荷包蛋」，不可修改</span></label>
+          <label>盖章<span class="hint">署名固定显示，不可关闭</span></label>
           <div class="field-row-inline">
-            <button class="switch" id="stampOn" type="button" aria-pressed="true" aria-label="印章开关"></button>
             <span class="lock-chip">荷包蛋 · POACHED EGG</span>
           </div>
         </div>
@@ -1089,9 +1088,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     var quote = state.quote.trim();
     if (quote) quote = '「' + quote.replace(/^-+|-+$/g, '') + '」';
 
-    var stamp = state.stampOn
-      ? '<div class="stamp"><b>' + esc(state.stampText || '荷包蛋') + '</b><small>EGG</small></div>'
-      : '<div class="stamp is-hidden"></div>';
+    var stamp = '<div class="stamp"><b>' + esc(state.stampText || '荷包蛋') + '</b><small>EGG</small></div>';
 
     var tk = formatTicket(state.when);
     var cn = String(state.clubCn || '').replace(/[^\u4e00-\u9fa5]/g, '');
@@ -1124,9 +1121,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
         '<div class="tk-split"></div>' +
         '<div class="tk-sum">' +
           '<div class="tk-sum-l"><small>TOTAL · 合计</small><b>' + money(t, false) + '</b></div>' +
-          (state.stampOn
-            ? '<div class="tk-stamp"><b>' + esc(state.stampText || '荷包蛋') + '</b><small>EGG</small></div>'
-            : '') +
+          '<div class="tk-stamp"><b>' + esc(state.stampText || '荷包蛋') + '</b><small>EGG</small></div>' +
         '</div>' +
         '<div class="tk-two">' +
           '<div class="tk-chip a"><small>实付 PAID</small><b>' + money(paid, false) + '</b></div>' +
@@ -1247,7 +1242,6 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     $('#quote').value = state.quote;
     $('#name').value = state.name;
     $('#tail').value = state.tail;
-    $('#stampOn').setAttribute('aria-pressed', state.stampOn ? 'true' : 'false');
     $$('[data-cur]').forEach(function (el) { el.textContent = state.cur; });
   }
 
@@ -1593,11 +1587,6 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     });
     $('#paid').addEventListener('input', function (e) {
       state.paid = e.target.value; renderSlip(); save();
-    });
-    $('#stampOn').addEventListener('click', function () {
-      state.stampOn = !state.stampOn;
-      $('#stampOn').setAttribute('aria-pressed', state.stampOn ? 'true' : 'false');
-      renderSlip(); save();
     });
 
     $('#charGrid').addEventListener('click', function (e) {
