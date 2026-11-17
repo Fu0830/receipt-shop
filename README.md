@@ -48,3 +48,10 @@ https://<你的用户名>.github.io/receipt-shop/
 
 - 角色图：`assets/ch_kitty.png`、`ch_kuromi.png`、`ch_melody.png`、`ch_cinnamoroll.png`、`ch_badtz.png`、`ch_purin.png`（从 `assets/p1.png` 六宫格裁切、按四角底色去背得到），同目录另有 `ch_*.webp`（高 300px，体积更小）。
 - 换角色图：替换对应 png/webp 后重新内联到 `index.html` 的 `var CHARS = {...}` 里，每项字段为 `{ name, hue, h, img }`（`hue` 是该角色的默认色相，`h` 是票面头图里显示的像素高度）。
+
+## 另外六个 IP 主题
+
+除三丽鸥六位，还接入了六个独立 IP：开开、小尾、噜噜、棉球猫、吉伊卡哇、月薪喵。这六个的原始素材是带底色的整幅插画，所以票面里以「白边插画卡」的形式呈现（照片式），和三丽鸥的透明贴纸并列可选。
+
+- 素材：`assets/ip_kaikai.png`、`ip_xiaowei.png`、`ip_lulu.png`、`ip_mianqiu.png`、`ip_chii.png`、`ip_yuexin.png`（由 `assets/ip_*_src.png` 原图裁切），同目录另有同名 `webp`。
+- 内联方式：`index.html` 的 `var CHARS` 里每项 `{ name, hue, ph: 1, img }`，`ph: 1` 表示用插画卡版式；三丽鸥那六项没有 `ph`，走透明贴纸版式。
