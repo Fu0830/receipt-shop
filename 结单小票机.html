@@ -665,7 +665,44 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
     border-top: 1px solid var(--ui-line);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
-  [data-night="on"] .actionbar{
+  /* 存相册预览层 */
+.save-sheet{
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: hsl(0 0% 20% / .42); backdrop-filter: blur(3px);
+  padding: 0;
+}
+.save-sheet[hidden]{ display: none; }
+.save-dialog{
+  width: min(420px, 100%);
+  background: #fff; color: #1d1d20;
+  border-radius: 18px 18px 0 0;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow: 0 -10px 40px hsl(0 0% 10% / .26);
+  max-height: 88vh; overflow: auto;
+}
+.save-head{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.save-head b{ font-size: 14px; letter-spacing: .06em; }
+.save-close{
+  width: 32px; height: 32px; border: 0; border-radius: 50%; cursor: pointer;
+  background: #f2f2f5; color: #55555d; font-size: 18px; line-height: 1;
+}
+.save-stage{
+  border-radius: 12px; overflow: hidden; background: #f6f6f8;
+  display: flex; align-items: center; justify-content: center;
+  max-height: 52vh;
+}
+.save-stage img, .save-stage video{
+  display: block; max-width: 100%; max-height: 52vh; width: auto;
+  -webkit-touch-callout: default; touch-action: auto;
+}
+.save-tip{
+  margin: 10px 2px 12px; font-size: 12px; line-height: 1.6; color: #6b6b73;
+}
+.save-acts{ display: flex; gap: 8px; }
+.save-acts .btn{ flex: 1; }
+
+[data-night="on"] .actionbar{
     background: linear-gradient(to top, hsl(var(--hue) 26% 12% / .96) 30%, hsl(var(--hue) 26% 12% / .7));
   }
   .btn-primary{ flex: 1 1 62%; }
@@ -871,6 +908,21 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="save-sheet" id="saveSheet" hidden>
+  <div class="save-dialog" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
+    <div class="save-head">
+      <b id="saveTitle">存到相册</b>
+      <button class="save-close" id="saveClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="save-stage" id="saveStage"></div>
+    <p class="save-tip" id="saveTip"></p>
+    <div class="save-acts">
+      <button class="btn btn-primary save-share" id="saveShare" type="button" hidden>保存到相册</button>
+      <button class="btn btn-ghost" id="saveDownload" type="button">下载文件</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* gifenc 1.0.3 · MIT */
@@ -1260,12 +1312,55 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     });
   }
 
-  function download(blob, name) {
+  var saveObj = null;
+
+  function closeSheet() {
+    $('#saveSheet').hidden = true;
+    $('#saveStage').innerHTML = '';
+    $('#saveShare').hidden = true;
+    if (saveObj) { URL.revokeObjectURL(saveObj.url); saveObj = null; }
+  }
+
+  function showSave(blob, name, kind) {
+    closeSheet();
     var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = name;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 6000);
+    saveObj = { url: url, blob: blob, name: name };
+    var stage = $('#saveStage');
+    stage.innerHTML = '';
+    var el;
+    if (kind === 'video') {
+      el = document.createElement('video');
+      el.src = url; el.controls = true; el.loop = true; el.muted = true;
+      el.playsInline = true; el.autoplay = true; el.setAttribute('playsinline', '');
+    } else {
+      el = document.createElement('img');
+      el.src = url; el.alt = '结单小票';
+    }
+    stage.appendChild(el);
+
+    var file = null;
+    try { file = new File([blob], name, { type: blob.type || 'application/octet-stream' }); } catch (e) { file = null; }
+    var canShare = !!(navigator.canShare && file && navigator.canShare({ files: [file] }));
+    $('#saveShare').hidden = !canShare;
+    $('#saveTip').textContent = kind === 'video'
+      ? (canShare
+          ? '点「保存到相册」会调起系统面板，选「存储视频」即可；微信里也可长按视频另存。'
+          : '长按上方视频，选「存储视频」；或点「下载文件」存到手机文件里。')
+      : (canShare
+          ? '长按上方图片，选「存储图像／保存图片」就能进相册；也可以点「保存到相册」。'
+          : '长按上方图片，选「存储图像／保存图片」即可存进相册；电脑上点「下载文件」。');
+    $('#saveSheet').hidden = false;
+
+    $('#saveShare').onclick = function () {
+      if (!canShare || !file) return;
+      navigator.share({ files: [file], title: '结单小票 · ' + (state.no || '') }).catch(function () {});
+    };
+    $('#saveDownload').onclick = function () {
+      if (!saveObj) return;
+      var a = document.createElement('a');
+      a.href = saveObj.url; a.download = saveObj.name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
   }
 
   /* 把「出纸 → 停一下 → 撕下」画在一张画布上，视频和动图共用 */
@@ -1348,8 +1443,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     slipCanvas(2).then(function (canvas) {
       canvas.toBlob(function (blob) {
         if (!blob) { toast('生成失败，试试直接截图'); exporting = false; return; }
-        download(blob, '小票-' + (state.no || 'receipt') + '.png');
-        toast('图片已保存');
+        showSave(blob, '小票-' + (state.no || 'receipt') + '.png', 'image');
+        toast('图片好了，长按存进相册');
         exporting = false;
       }, 'image/png');
     }).catch(function () { toast('生成失败，可长按小票保存'); exporting = false; });
@@ -1373,8 +1468,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       var chunks = [];
       rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
       rec.onstop = function () {
-        download(new Blob(chunks, { type: mime }), '小票-' + (state.no || 'receipt') + (mime.indexOf('mp4') > -1 ? '.mp4' : '.webm'));
-        toast('视频已保存');
+        showSave(new Blob(chunks, { type: mime }), '小票-' + (state.no || 'receipt') + (mime.indexOf('mp4') > -1 ? '.mp4' : '.webm'), 'video');
+        toast('视频好了，点保存到相册');
         st.canvas.width = st.canvas.height = 0;
         exporting = false;
       };
@@ -1430,8 +1525,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       }
       enc.finish();
       var bytes = enc.bytesView();
-      download(new Blob([bytes], { type: 'image/gif' }), '小票-' + (state.no || 'receipt') + '.gif');
-      toast('动图已保存');
+      showSave(new Blob([bytes], { type: 'image/gif' }), '小票-' + (state.no || 'receipt') + '.gif', 'gif');
+      toast('动图好了，长按存进相册');
       exporting = false;
     }).catch(function (e) { console.error('gif-err', (e&&e.stack)||e); toast('生成失败'); exporting = false; });
   }
@@ -1517,6 +1612,9 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     });
 
     $('#printBtn').addEventListener('click', printWithPosition);
+    $('#saveClose').addEventListener('click', closeSheet);
+    $('#saveSheet').addEventListener('click', function (e) { if (e.target && e.target.id === 'saveSheet') closeSheet(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
     $('#savePngBtn').addEventListener('click', savePng);
     $('#saveVideoBtn').addEventListener('click', saveVideo);
     $('#saveGifBtn').addEventListener('click', saveGif);
