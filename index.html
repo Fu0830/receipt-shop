@@ -542,6 +542,7 @@ select.control{ appearance: none; -webkit-appearance: none; padding-right: 30px;
 .tk-type{ font-size: 12.5px; font-weight: 600; letter-spacing: .03em; color: var(--tk-ink); line-height: 1.45; overflow-wrap: anywhere; }
 .tk-type em{ font-family: var(--tk-mono); font-style: normal; font-size: 8px; font-weight: 400; letter-spacing: .16em; color: var(--tk-ink-3); margin-left: 6px; }
 .tk-sub{ font-size: 10.5px; letter-spacing: .04em; color: var(--tk-deep-2); margin-top: 3px; overflow-wrap: anywhere; }
+.tk-note{ font-size: 10px; letter-spacing: .03em; color: var(--tk-ink-2); margin-top: 4px; padding: 3px 7px; border-left: 2px solid hsl(var(--hue) 55% 72%); background: hsl(var(--hue) 40% 96%); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
 .tk-amt{ text-align: right; }
 .tk-amt b{ display: block; font-size: 12.5px; font-weight: 600; letter-spacing: .02em; color: var(--tk-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tk-amt small{ display: block; margin-top: 3px; font-family: var(--tk-mono); font-size: 8.5px; letter-spacing: .1em; color: var(--tk-ink-3); }
@@ -1078,6 +1079,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
               (it.sub ? '<em>' + esc(it.sub) + '</em>' : '') +
             '</div>' +
             '<div class="tk-sub">陪陪 · ' + esc(it.name || '—') + '</div>' +
+            (it.note && it.note.trim() ? '<div class="tk-note">留言 · ' + esc(it.note.trim()) + '</div>' : '') +
           '</div>' +
           '<div class="tk-amt"><b>' + money(num(it.amt), false) + '</b>' +
             '<small>' + esc(it.qty || '0') + ' 件</small>' +
@@ -1158,6 +1160,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
         '</div>' +
         '<div class="field"><label>陪陪名称</label>' +
           '<input class="control" data-k="name" value="' + esc(it.name) + '" autocomplete="off" aria-label="陪陪名称"></div>' +
+        '<div class="field"><label>陪陪留言<span class="hint">显示在小票对应单项下方</span></label>' +
+          '<input class="control" data-k="note" value="' + esc(it.note || '') + '" autocomplete="off" placeholder="陪陪结单备注" aria-label="陪陪留言"></div>' +
         '<div class="grid3">' +
           '<div class="field"><label>数量</label>' +
             '<input class="control" data-k="qty" inputmode="numeric" value="' + esc(it.qty) + '" autocomplete="off" aria-label="数量"></div>' +
@@ -1227,6 +1231,8 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     if (m.clubEn === 'HOSHINO PLAYROOM') m.clubEn = DEFAULTS.clubEn;
     if (!Array.isArray(m.items) || !m.items.length) {
       m.items = DEFAULTS.items.map(function (x) { return Object.assign({}, x); });
+    } else {
+      m.items.forEach(function (it) { if (it.note === undefined) it.note = ''; });
     }
     return m;
   }
@@ -1558,7 +1564,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
       renderItems(); renderSlip(); save();
     });
     $('#addItem').addEventListener('click', function () {
-      state.items.push({ type: '', sub: '', name: '', qty: '1', amt: '' });
+      state.items.push({ type: '', sub: '', name: '', note: '', qty: '1', amt: '' });
       renderItems(); renderSlip(); save();
       var last = $('#items').lastElementChild;
       if (last) { $('[data-k=name]', last).focus(); }
@@ -1644,7 +1650,7 @@ var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicati
     when: toLocalInput(new Date()),
     cur: '¥',
     no: 'HP-206031',
-    items: [{ type: '双排上分', sub: 'SHUANG PAI', name: '栗子', qty: '3', amt: '128' }],
+    items: [{ type: '双排上分', sub: 'SHUANG PAI', name: '栗子', note: '', qty: '3', amt: '128' }],
     total: '',
     paid: '',
     balance: '1000',
