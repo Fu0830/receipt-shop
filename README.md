@@ -41,3 +41,10 @@ https://<你的用户名>.github.io/receipt-shop/
 ## 改成自己的店
 
 `index.html` 里搜 `DEFAULTS`，改掉默认值（店名、点单类型、陪陪名、寄语、人名、卡内余额等）即可；换插画就替换 `assets/pad.webp` 并重新内联成 base64（或直接把 `STICKER` 换成相对路径引用）。
+
+## 角色主题
+
+左侧第一块是六个三丽鸥角色的主题切换：凯蒂猫 / 酷洛米 / 美乐蒂 / 大耳狗 / 酷企鹅 / 布丁狗。点角色会同时套用该角色的一套配色（配色由 `--hue` 派生，所以顶部色相滑杆仍可继续微调，不会锁死）。票面里角色出现在格纹头图卡上，格纹与整体色板同源。
+
+- 角色图：`assets/ch_kitty.png`、`ch_kuromi.png`、`ch_melody.png`、`ch_cinnamoroll.png`、`ch_badtz.png`、`ch_purin.png`（从 `assets/p1.png` 六宫格裁切、按四角底色去背得到），同目录另有 `ch_*.webp`（高 300px，体积更小）。
+- 换角色图：替换对应 png/webp 后重新内联到 `index.html` 的 `var CHARS = {...}` 里，每项字段为 `{ name, hue, h, img }`（`hue` 是该角色的默认色相，`h` 是票面头图里显示的像素高度）。
